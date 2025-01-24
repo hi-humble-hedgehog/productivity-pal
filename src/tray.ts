@@ -5,7 +5,7 @@ import trayImagePath from './assets/images/trayTemplate.png';
 let tray: Tray;
 
 
-function createTray() {
+function createTray(onTrayClick: () => void) {
     const trayIcon = nativeImage.createFromPath(trayImagePath);
 
     tray = new Tray(trayIcon);
@@ -15,14 +15,12 @@ function createTray() {
             label: 'Start Recording',
             click: () => {
                 console.log('Start Recording');
-                // mainWindow.webContents.send('start-recording');
             },
         },
         {
             label: 'Stop Recording',
             click: () => {
                 console.log('Stop Recording');
-                // mainWindow.webContents.send('stop-recording');
             },
         },
         { type: 'separator' },
@@ -32,13 +30,10 @@ function createTray() {
         },
     ]);
 
-    tray.setToolTip('Productivity Pal'); // Set tooltip
+    tray.setToolTip('Productivity Pal');
     tray.setContextMenu(contextMenu);
-
-    // Click on tray icon to toggle window visibility
-    tray.on('click', () => {
-        console.log('clicked');
-    });
+    
+    tray.on('click', onTrayClick);
 }
 
 
