@@ -4,8 +4,8 @@ export type State = 'setup' // for initial run
     | 'offline' // when it can't reach the endpoint
     | 'productive' // when the user is productive
     | 'unproductive' // when the user is unproductive
-    | 'caution' // when potential sensitive information is detected
-    | 'incognito' // when the user is in incognito mode
+    | 'caution' // when potential sensitive information is detected, provide option to go in incognito
+    | 'incognito' // when the user is in incognito mode    
 
 let state:State = 'setup';
 

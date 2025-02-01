@@ -1,6 +1,7 @@
 import { BrowserWindow, nativeImage, Tray, Menu, MenuItemConstructorOptions, app } from 'electron';
 import * as path from 'path';
 import trayImagePath from './assets/images/trayTemplate.png';
+import { openScreenCapturePreference, setIsFirstRun } from './utils';
 
 let tray: Tray;
 
@@ -12,15 +13,15 @@ function createTray(onTrayClick: () => void) {
 
     const contextMenu = Menu.buildFromTemplate([
         {
-            label: 'Start Recording',
+            label: 'Reset first run',
             click: () => {
-                console.log('Start Recording');
+                setIsFirstRun(true);
             },
         },
         {
-            label: 'Stop Recording',
+            label: 'Remove screen sharing permission',
             click: () => {
-                console.log('Stop Recording');
+                openScreenCapturePreference();
             },
         },
         { type: 'separator' },

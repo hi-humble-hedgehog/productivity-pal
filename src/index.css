@@ -5,3 +5,10 @@ body {
   max-width: 38rem;
   padding: 2rem;
 }
+
+video {
+  background-color: yellow;
+  width: 500px;
+  height: auto;
+  display: none;
+}
