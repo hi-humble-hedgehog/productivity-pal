@@ -24,6 +24,12 @@ function createTray(onTrayClick: () => void) {
                 openScreenCapturePreference();
             },
         },
+        {
+            label: 'Open Chat Window',
+            click: () => {
+                onTrayClick();
+            },
+        },
         { type: 'separator' },
         {
             label: 'Quit',
@@ -33,8 +39,6 @@ function createTray(onTrayClick: () => void) {
 
     tray.setToolTip('Productivity Pal');
     tray.setContextMenu(contextMenu);
-    
-    tray.on('click', onTrayClick);
 }
 
 

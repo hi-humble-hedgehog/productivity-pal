@@ -1,15 +1,15 @@
-import { app, BrowserWindow, session, systemPreferences, desktopCapturer, shell, ipcMain } from 'electron';
+import { app, BrowserWindow, session, systemPreferences, desktopCapturer, shell, ipcMain, safeStorage, IpcMainEvent } from 'electron';
 import createTray from './tray';
 import { getState, State } from './managers/stateManager';
-import { checkScreenRecordingPermission, getIsFirstRun, openScreenCapturePreference, setIsFirstRun } from './utils';
-
+import { hasScreenRecordingPermission, getIsFirstRun, openScreenCapturePreference, setIsFirstRun } from './utils';
+import { saveScreenshot } from './managers/screenshotManager';
+import {writeFileSync} from 'fs';
 
 process.on('unhandledRejection', (reason, promise) => {
   console.error('Unhandled Rejection at:', promise, 'reason:', reason);
 });
 
 const isDev = !app.isPackaged;
-
 
 declare const MAIN_WINDOW_WEBPACK_ENTRY: string;
 declare const MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY: string;
@@ -24,10 +24,13 @@ const init = async () => {
 
   isFirstRun = await getIsFirstRun();
 
-  ipcMain.on('quit-app', () => {
+  ipcMain.on('screen-recorder-message', (event: IpcMainEvent, message:string) => {
 
-    app.quit();
-  });  
+    console.log('got the message', message);
+    
+    const base64Data = message.replace(/^data:image\/png;base64,/, "");
+    saveScreenshot(base64Data);    
+  });
 
   app.on('window-all-closed', () => {
 
@@ -36,16 +39,31 @@ const init = async () => {
 
   app.on('activate', createWindow);
 
-  
 
-  await app.whenReady();  
+
+  await app.whenReady();
 
   onAppReady();
 }
 
-const createWindow = async (): Promise<void> => {
 
-  if (BrowserWindow.getAllWindows().length === 0) {
+const createScreenshotWindow = () => {
+
+  const preloadPath = MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY.replace('main_window', 'screen_recorder');
+  const windowPath = MAIN_WINDOW_WEBPACK_ENTRY.replace('main_window', 'screen_recorder');
+
+  const screenshotWindow = new BrowserWindow({
+    // show: false,
+    webPreferences: {
+      preload: preloadPath
+    }
+  });
+
+  screenshotWindow.loadURL(windowPath);
+}
+
+const createWindow = () => {
+    console.log('createWindow')
     const mainWindow = new BrowserWindow({
       height: 600,
       width: 800,
@@ -54,19 +72,16 @@ const createWindow = async (): Promise<void> => {
       }
     });
 
-    mainWindow.loadURL(`${MAIN_WINDOW_WEBPACK_ENTRY}?state=${await getCurrentState()}`);
-  }
+    mainWindow.loadURL(`${MAIN_WINDOW_WEBPACK_ENTRY}?state=${getCurrentState()}`);  
 };
 
-const getCurrentState = async (): Promise<State> => {
-  
+const getCurrentState = (): State => {
+
   if (isFirstRun) {
     return 'setup'
   }
 
-  const hasPermission = await checkScreenRecordingPermission();
-
-  if (!hasPermission) {
+  if (!hasScreenRecordingPermission()) {
     return 'restricted';
   }
 
@@ -75,61 +90,60 @@ const getCurrentState = async (): Promise<State> => {
 
 const onAppReady = () => {
 
-// Set content headers based on dev and prod for Content-Security-Policy best practices
-session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+  // Set content headers based on dev and prod for Content-Security-Policy best practices
+  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
 
-  const DEV_CSP = "default-src 'none'; script-src 'self' 'unsafe-eval'; connect-src 'self'; style-src 'unsafe-inline'; img-src 'self'; font-src 'self'; media-src 'self';";
-  const PROD_CSP = "default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; media-src 'self';";
+    const DEV_CSP = "default-src 'none'; script-src 'self' 'unsafe-eval'; connect-src 'self'; style-src 'unsafe-inline'; img-src 'self' data:ç; font-src 'self'; media-src 'self';";
+    const PROD_CSP = "default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; media-src 'self';";
 
-  callback({
-    responseHeaders: {
-      ...details.responseHeaders,
-      'Content-Security-Policy': [isDev ? DEV_CSP : PROD_CSP],
-    }
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Content-Security-Policy': [isDev ? DEV_CSP : PROD_CSP],
+      }
+    })
   })
-})
 
 
-session.defaultSession.setDisplayMediaRequestHandler(async (request, callback) => {
-  
-  let sources: Electron.DesktopCapturerSource[] = [];
+  session.defaultSession.setDisplayMediaRequestHandler(async (request, callback) => {
 
-  try {
+    let sources: Electron.DesktopCapturerSource[] = [];
 
-    setIsFirstRun(false);
-    const hasPermission = await checkScreenRecordingPermission();
+    try {
 
-    if(isFirstRun || hasPermission) {
-      sources = await desktopCapturer.getSources({ types: ['screen'] });      
+      setIsFirstRun(false);
 
-    } else if(!isFirstRun) {
-      openScreenCapturePreference();
-    }      
 
-  } catch(error) {
+      if (isFirstRun || hasScreenRecordingPermission()) {
+        sources = await desktopCapturer.getSources({ types: ['screen'] });
 
-    // on first run, Mac will open the privacy settings for us through a dialog.
-    if(!isFirstRun) {
-    // TODO display message to users that we can't display the screen. In the interface ask for permission again.
-    openScreenCapturePreference();
+      } else if (!isFirstRun) {
+        openScreenCapturePreference();
+      }
+
+    } catch (error) {
+
+      // on first run, Mac will open the privacy settings for us through a dialog.
+      if (!isFirstRun) {
+        // TODO display message to users that we can't display the screen. In the interface ask for permission again.
+        openScreenCapturePreference();
+      }
     }
-  }  
 
-  if (sources && sources.length) {
-    const selectedSource = sources[0];
-    
-    callback({ video: selectedSource, audio: 'loopback' })
-  } else {
-    
-    callback({ video: null, audio: null });
-  }
+    if (sources && sources.length) {
+      const selectedSource = sources[0];
 
-  
-}, { useSystemPicker: false });
+      callback({ video: selectedSource, audio: 'loopback' })
+    } else {
+
+      callback({ video: null, audio: null });
+    }
 
 
-createWindow()
-createTray(createWindow);
+  }, { useSystemPicker: false });
+
+  createTray(createWindow);
+  createScreenshotWindow();
 };
 
 init();

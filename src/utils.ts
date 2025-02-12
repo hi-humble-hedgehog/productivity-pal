@@ -2,24 +2,25 @@
 import * as path from 'path';
 import * as fs from 'fs';
 import { app, shell, systemPreferences } from 'electron';
+import { spawn } from 'child_process';
 
-export const checkScreenRecordingPermission = async () => {
+export const hasScreenRecordingPermission = () => {
 
     const mediaAccessStatus = systemPreferences.getMediaAccessStatus('screen');
-    console.log('mediaAccessStatus', mediaAccessStatus);
+
     return mediaAccessStatus === "granted";
 }
 
 const firstRunFileName = 'first-run';
 const firstRunFilePath = path.join(app.getPath('userData'), firstRunFileName);
 
-export const setIsFirstRun = async (newIsFirstRun:boolean) => {
-    
-    if(await getIsFirstRun() === newIsFirstRun) {
-        return 
+export const setIsFirstRun = async (newIsFirstRun: boolean) => {
+
+    if (await getIsFirstRun() === newIsFirstRun) {
+        return
     };
 
-    if(newIsFirstRun === true) {
+    if (newIsFirstRun === true) {
         // we can unlink safely because we know it exists based on the check above
         fs.unlinkSync(firstRunFilePath);
     } else {
@@ -32,7 +33,7 @@ export const openScreenCapturePreference = () => {
     shell.openExternal('x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture')
 }
 
-export const getIsFirstRun = async () => {    
+export const getIsFirstRun = async () => {
 
     try {
 

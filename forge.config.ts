@@ -25,11 +25,19 @@ const config: ForgeConfig = {
         config: rendererConfig,
         entryPoints: [
           {
-            html: './src/index.html',
-            js: './src/renderer.ts',
+            html: './src/windows/main/index.html',
+            js: './src/windows/main/renderer.ts',
             name: 'main_window',
             preload: {
-              js: './src/preload.ts',
+              js: './src/windows/main/preload.ts',
+            },
+          },
+          {
+            html: './src/windows/screen-recorder/index.html',
+            js: './src/windows/screen-recorder/screen-recorder.ts',
+            name: 'screen_recorder',
+            preload: {
+              js: './src/windows/screen-recorder/preload.ts',
             },
           },
         ],
