@@ -6,7 +6,7 @@ import { openScreenCapturePreference, setIsFirstRun } from './utils';
 let tray: Tray;
 
 
-function createTray(onTrayClick: () => void) {
+function createTray(onTrayClick: () => void, createCredentialsWindow:()=> void) {
     const trayIcon = nativeImage.createFromPath(trayImagePath);
 
     tray = new Tray(trayIcon);
@@ -29,6 +29,15 @@ function createTray(onTrayClick: () => void) {
             click: () => {
                 onTrayClick();
             },
+        },
+        { type: 'separator' },        
+        {
+            label:'Currently using Gemini',
+            enabled: false
+        },
+        {
+            label:'Choose your AI model',
+            click:createCredentialsWindow
         },
         { type: 'separator' },
         {

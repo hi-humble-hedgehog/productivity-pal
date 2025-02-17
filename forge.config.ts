@@ -29,7 +29,7 @@ const config: ForgeConfig = {
             js: './src/windows/main/renderer.ts',
             name: 'main_window',
             preload: {
-              js: './src/windows/main/preload.ts',
+              js: './src/windows/shared/preload.ts',
             },
           },
           {
@@ -37,7 +37,15 @@ const config: ForgeConfig = {
             js: './src/windows/screen-recorder/screen-recorder.ts',
             name: 'screen_recorder',
             preload: {
-              js: './src/windows/screen-recorder/preload.ts',
+              js: './src/windows/shared/preload.ts',
+            },
+          },
+          {
+            html: './src/windows/credentials/index.html',
+            js: './src/windows/credentials/credentials.ts',
+            name: 'credentials',
+            preload: {
+              js: './src/windows/shared/preload.ts',
             },
           },
         ],

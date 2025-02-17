@@ -17,7 +17,7 @@ async function init() {
             console.log('click');
             const screenshot = takeScreenshot();
             console.log('screenshot', screenshot);
-            window.electronAPI.screenRecorderMessage(screenshot);
+            // window.electronAPI.screenRecorderMessage(screenshot); TODO - send base64 to main process for safe keeping
             imageEl.src = screenshot;
         });
     } catch (error) {

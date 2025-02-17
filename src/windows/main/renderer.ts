@@ -55,6 +55,7 @@ const onQuitClick = async () => {
   // window.electronAPI.quitApp();
 
   // buttonEl.style.opacity = '0';
+
   window.electronAPI.quitApp();
 };
 

@@ -4,6 +4,8 @@ import { getState, State } from './managers/stateManager';
 import { hasScreenRecordingPermission, getIsFirstRun, openScreenCapturePreference, setIsFirstRun } from './utils';
 import { saveScreenshot } from './managers/screenshotManager';
 import {writeFileSync} from 'fs';
+import { createWindow } from './managers/windowManager';
+import { readSecureData, storeSecureData } from './managers/userPreferenceManager';
 
 process.on('unhandledRejection', (reason, promise) => {
   console.error('Unhandled Rejection at:', promise, 'reason:', reason);
@@ -24,6 +26,16 @@ const init = async () => {
 
   isFirstRun = await getIsFirstRun();
 
+  ipcMain.on('credential-message', (event: IpcMainEvent, message:string) => {
+
+    storeSecureData("key", message);
+  });
+
+  ipcMain.on('quit-app', () => {
+
+    app.quit();
+  });  
+  
   ipcMain.on('screen-recorder-message', (event: IpcMainEvent, message:string) => {
 
     console.log('got the message', message);
@@ -37,7 +49,7 @@ const init = async () => {
     app.dock.hide();
   });
 
-  app.on('activate', createWindow);
+  app.on('activate', createCharacterWindow);
 
 
 
@@ -46,34 +58,28 @@ const init = async () => {
   onAppReady();
 }
 
+const createCharacterWindow = () => {
+
+  const characterWindow = createWindow(MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY, `${MAIN_WINDOW_WEBPACK_ENTRY}?state=${getCurrentState()}`, {    
+  });  
+}
 
 const createScreenshotWindow = () => {
 
-  const preloadPath = MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY.replace('main_window', 'screen_recorder');
   const windowPath = MAIN_WINDOW_WEBPACK_ENTRY.replace('main_window', 'screen_recorder');
 
-  const screenshotWindow = new BrowserWindow({
-    // show: false,
-    webPreferences: {
-      preload: preloadPath
-    }
-  });
-
-  screenshotWindow.loadURL(windowPath);
+  const screenshotWindow = createWindow(MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY, windowPath, {
+    // show: false
+  });  
 }
 
-const createWindow = () => {
-    console.log('createWindow')
-    const mainWindow = new BrowserWindow({
-      height: 600,
-      width: 800,
-      webPreferences: {
-        preload: MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY,
-      }
-    });
+const createCredentialsWindow = () => {
 
-    mainWindow.loadURL(`${MAIN_WINDOW_WEBPACK_ENTRY}?state=${getCurrentState()}`);  
-};
+  const windowPath = MAIN_WINDOW_WEBPACK_ENTRY.replace('main_window', 'credentials');
+  const storedKey = readSecureData("key") || "";
+  const credentialsWindow = createWindow(MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY, `${windowPath}?key=${storedKey}`, {    
+  });  
+}
 
 const getCurrentState = (): State => {
 
@@ -90,10 +96,21 @@ const getCurrentState = (): State => {
 
 const onAppReady = () => {
 
+  console.log('safeStorage.isEncryptionAvailable()', safeStorage.isEncryptionAvailable());
+  const a = safeStorage.encryptString("Rick van Mook")
+  console.log('a');
+  console.log(a);
+  const b = safeStorage.decryptString(a);
+
+  console.log('b');
+  console.log(b);
+
+
+
   // Set content headers based on dev and prod for Content-Security-Policy best practices
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
 
-    const DEV_CSP = "default-src 'none'; script-src 'self' 'unsafe-eval'; connect-src 'self'; style-src 'unsafe-inline'; img-src 'self' data:ç; font-src 'self'; media-src 'self';";
+    const DEV_CSP = "default-src 'none'; script-src 'self' 'unsafe-eval'; connect-src 'self'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self'; media-src 'self';";
     const PROD_CSP = "default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; media-src 'self';";
 
     callback({
@@ -142,8 +159,8 @@ const onAppReady = () => {
 
   }, { useSystemPicker: false });
 
-  createTray(createWindow);
-  createScreenshotWindow();
+  createTray(createCharacterWindow, createCredentialsWindow);
+  createCredentialsWindow();
 };
 
 init();
