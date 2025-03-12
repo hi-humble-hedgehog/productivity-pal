@@ -6,6 +6,7 @@ import { saveScreenshot } from './managers/screenshotManager';
 import {writeFileSync} from 'fs';
 import { createWindow } from './managers/windowManager';
 import { readSecureData, storeSecureData } from './managers/userPreferenceManager';
+import { callGeminiApi } from './managers/aiApiManager';
 
 process.on('unhandledRejection', (reason, promise) => {
   console.error('Unhandled Rejection at:', promise, 'reason:', reason);
